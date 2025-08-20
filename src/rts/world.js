@@ -77,7 +77,29 @@ export function createWorld({ width, height, tileSize }) {
   let nextUnitId = 1
   const units = []
   for (let i = 0; i < 20; i++) {
-    units.push({ id: nextUnitId++, x: (width * tileSize / 2) + (i - 10) * 24, y: (height * tileSize / 2) + ((i%5) - 2) * 24, tx: null, ty: null, speed: 120, path: null })
+    units.push({ id: nextUnitId++, x: (width * tileSize / 2) + (i - 10) * 24, y: (height * tileSize / 2) + ((i%5) - 2) * 24, tx: null, ty: null, speed: 120, path: null, cd: 0 })
+  }
+
+  // Enemies and projectiles
+  let nextEnemyId = 1
+  const enemies = []
+  const projectiles = []
+
+  function randomWalkableWorldPosition() {
+    for (let tries = 0; tries < 1000; tries++) {
+      const tx = Math.floor(rng() * width)
+      const ty = Math.floor(rng() * height)
+      if (tiles[ty * width + tx] !== 2) {
+        return tileToWorldCenter(tx, ty)
+      }
+    }
+    return { x: width * tileSize * 0.5, y: height * tileSize * 0.5 }
+  }
+
+  const enemyCount = 14
+  for (let i = 0; i < enemyCount; i++) {
+    const p = randomWalkableWorldPosition()
+    enemies.push({ id: nextEnemyId++, x: p.x, y: p.y, hp: 3, speed: 0, cd: 0 })
   }
 
   function tileIndex(tx, ty) { return ty * width + tx }
@@ -254,6 +276,101 @@ export function createWorld({ width, height, tileSize }) {
       const ny = u.y + (dy / dist) * step
       if (isWalkable(nx, ny)) { u.x = nx; u.y = ny } else { u.tx = u.ty = null; u.path = null }
     }
+
+    // Combat: units shoot at enemies
+    const unitRange = 220
+    const enemyRange = 200
+    const projectileSpeed = 600
+    const fireCooldown = 0.6
+
+    function findClosestTarget(srcX, srcY, targets) {
+      let best = null
+      let bestD2 = Infinity
+      for (let i = 0; i < targets.length; i++) {
+        const t = targets[i]
+        if (t.hp !== undefined && t.hp <= 0) continue
+        const dx = t.x - srcX
+        const dy = t.y - srcY
+        const d2 = dx*dx + dy*dy
+        if (d2 < bestD2) { bestD2 = d2; best = t }
+      }
+      return best ? { t: best, d2: bestD2 } : null
+    }
+
+    // players fire
+    for (const u of units) {
+      u.cd = Math.max(0, (u.cd || 0) - dt)
+      const found = findClosestTarget(u.x, u.y, enemies)
+      if (found && found.d2 <= unitRange * unitRange && u.cd === 0) {
+        const t = found.t
+        const dx = t.x - u.x
+        const dy = t.y - u.y
+        const d = Math.hypot(dx, dy) || 1
+        const vx = (dx / d) * projectileSpeed
+        const vy = (dy / d) * projectileSpeed
+        projectiles.push({ x: u.x, y: u.y, vx, vy, ttl: 2.0, dmg: 1, owner: 'player' })
+        u.cd = fireCooldown
+      }
+    }
+
+    // enemies fire back (stationary)
+    for (const e of enemies) {
+      if (e.hp <= 0) continue
+      e.cd = Math.max(0, (e.cd || 0) - dt)
+      const found = findClosestTarget(e.x, e.y, units)
+      if (found && found.d2 <= enemyRange * enemyRange && e.cd === 0) {
+        const t = found.t
+        const dx = t.x - e.x
+        const dy = t.y - e.y
+        const d = Math.hypot(dx, dy) || 1
+        const vx = (dx / d) * projectileSpeed
+        const vy = (dy / d) * projectileSpeed
+        projectiles.push({ x: e.x, y: e.y, vx, vy, ttl: 2.0, dmg: 1, owner: 'enemy' })
+        e.cd = fireCooldown + 0.2
+      }
+    }
+
+    // advance projectiles and handle hits
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const p = projectiles[i]
+      p.ttl -= dt
+      p.x += p.vx * dt
+      p.y += p.vy * dt
+      if (p.ttl <= 0) { projectiles.splice(i, 1); continue }
+      // remove if hitting water tile to keep visuals tidy
+      if (!isWalkable(p.x, p.y)) { projectiles.splice(i, 1); continue }
+
+      const targets = p.owner === 'player' ? enemies : units
+      const hitR2 = 10 * 10
+      let hitIndex = -1
+      for (let j = 0; j < targets.length; j++) {
+        const t = targets[j]
+        if (t.hp !== undefined && t.hp <= 0) continue
+        const dx = t.x - p.x
+        const dy = t.y - p.y
+        if (dx*dx + dy*dy <= hitR2) { hitIndex = j; break }
+      }
+      if (hitIndex !== -1) {
+        const t = targets[hitIndex]
+        if (t.hp === undefined) {
+          // player unit: add hp if we want, for now treat as 1-hit pop
+          // add transient hp
+          t.hp = 1
+        }
+        t.hp -= p.dmg
+        if (t.hp <= 0) {
+          // remove dead enemy or unit
+          if (p.owner === 'player') {
+            enemies.splice(hitIndex, 1)
+          } else {
+            // remove from units by identity
+            const idx = units.indexOf(t)
+            if (idx >= 0) units.splice(idx, 1)
+          }
+        }
+        projectiles.splice(i, 1)
+      }
+    }
   }
 
   function render(ctx, camera) {
@@ -279,9 +396,28 @@ export function createWorld({ width, height, tileSize }) {
         ctx.strokeRect(Math.floor(s.x) + 0.5, Math.floor(s.y) + 0.5, Math.ceil(size), Math.ceil(size))
       }
     }
+
+    // Draw enemies
+    for (const e of enemies) {
+      if (e.hp <= 0) continue
+      const { x, y } = camera.worldToScreen(e.x, e.y)
+      const size = Math.max(2, 12 * camera.zoom)
+      ctx.fillStyle = '#38bdf8' // cyan
+      ctx.fillRect(Math.floor(x - size/2), Math.floor(y - size/2), Math.ceil(size), Math.ceil(size))
+    }
+
+    // Draw projectiles
+    ctx.fillStyle = '#facc15' // amber
+    for (const p of projectiles) {
+      const { x, y } = camera.worldToScreen(p.x, p.y)
+      const r = Math.max(1, 2 * camera.zoom)
+      ctx.beginPath()
+      ctx.arc(Math.floor(x)+0.5, Math.floor(y)+0.5, r, 0, Math.PI*2)
+      ctx.fill()
+    }
   }
 
-  return { width, height, tileSize, tiles, units, update, render, issueMove }
+  return { width, height, tileSize, tiles, units, enemies, projectiles, update, render, issueMove }
 }
 
 
