@@ -96,10 +96,10 @@ export function createWorld({ width, height, tileSize }) {
     return { x: width * tileSize * 0.5, y: height * tileSize * 0.5 }
   }
 
-  const enemyCount = 14
+  const enemyCount = 34
   for (let i = 0; i < enemyCount; i++) {
     const p = randomWalkableWorldPosition()
-    enemies.push({ id: nextEnemyId++, x: p.x, y: p.y, hp: 3, speed: 0, cd: 0 })
+    enemies.push({ id: nextEnemyId++, x: p.x, y: p.y, hp: 3, speed: 90, cd: 0, tx: null, ty: null, path: null, ai: 0 })
   }
 
   function tileIndex(tx, ty) { return ty * width + tx }
@@ -327,6 +327,51 @@ export function createWorld({ width, height, tileSize }) {
         const vy = (dy / d) * projectileSpeed
         projectiles.push({ x: e.x, y: e.y, vx, vy, ttl: 2.0, dmg: 1, owner: 'enemy' })
         e.cd = fireCooldown + 0.2
+      }
+    }
+
+    // Enemy hunting AI: pathfind toward nearest unit and move
+    for (const e of enemies) {
+      if (e.hp <= 0) continue
+      // Repath occasionally to nearest unit
+      e.ai = Math.max(0, (e.ai || 0) - dt)
+      if (e.ai === 0) {
+        const tgt = findClosestTarget(e.x, e.y, units)
+        if (tgt) {
+          const t = tgt.t
+          const path = computeWorldPath(e.x, e.y, t.x, t.y)
+          if (path) {
+            e.path = path
+            const first = path[0]
+            e.tx = first.x; e.ty = first.y
+          }
+        }
+        // Stagger next repath a bit
+        e.ai = 0.5 + (rng() * 0.7)
+      }
+
+      // Follow path waypoints
+      if (e.tx == null && e.path && e.path.length) {
+        const next = e.path[0]
+        e.tx = next.x; e.ty = next.y
+      }
+      if (e.tx != null) {
+        const dx = e.tx - e.x
+        const dy = e.ty - e.y
+        const dist = Math.hypot(dx, dy)
+        if (dist < 2) {
+          if (e.path && e.path.length) {
+            e.path.shift()
+            if (e.path.length) { e.tx = e.path[0].x; e.ty = e.path[0].y } else { e.tx = e.ty = null; e.path = null }
+          } else {
+            e.tx = e.ty = null
+          }
+        } else {
+          const step = e.speed * dt
+          const nx = e.x + (dx / dist) * step
+          const ny = e.y + (dy / dist) * step
+          if (isWalkable(nx, ny)) { e.x = nx; e.y = ny } else { e.tx = e.ty = null; e.path = null }
+        }
       }
     }
 
