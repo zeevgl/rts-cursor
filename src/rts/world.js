@@ -10,12 +10,69 @@ function rand(seed) {
 export function createWorld({ width, height, tileSize }) {
   const rng = rand(12345)
   const tiles = new Uint8Array(width * height)
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const n = rng()
-      tiles[y * width + x] = n < 0.12 ? 2 : n < 0.5 ? 1 : 0 // 0 grass, 1 dirt, 2 water
+  // Generate terrain with water bands at least 4 tiles wide and 7 tiles long
+  ;(function generateTerrain() {
+    // Start all as grass (0)
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        tiles[y * width + x] = 0
+      }
     }
-  }
+
+    function fillWaterRect(x0, y0, wTiles, hTiles) {
+      const x1 = Math.min(width, Math.max(0, x0 + wTiles))
+      const y1 = Math.min(height, Math.max(0, y0 + hTiles))
+      const xs = Math.max(0, x0)
+      const ys = Math.max(0, y0)
+      for (let y = ys; y < y1; y++) {
+        for (let x = xs; x < x1; x++) {
+          tiles[y * width + x] = 2 // water
+        }
+      }
+    }
+
+    const numBands = 10 + Math.floor(rng() * 7) // 10-16 bands
+    for (let b = 0; b < numBands; b++) {
+      const horizontal = rng() < 0.5
+      const thickness = 4 + Math.floor(rng() * 3) // 4-6
+      const length = 7 + Math.floor(rng() * Math.floor((horizontal ? width : height) * 0.5)) // >=7
+      if (horizontal) {
+        const y0 = Math.floor(rng() * (height - thickness))
+        let x0 = Math.floor(rng() * (width - length))
+        // optional slight shift segments to avoid perfect straightness
+        const segments = 3 + Math.floor(rng() * 3)
+        const segLen = Math.max(7, Math.floor(length / segments))
+        for (let s = 0; s < segments; s++) {
+          const wobble = Math.floor((rng() - 0.5) * 3) // -1..1
+          const ySeg = Math.max(0, Math.min(height - thickness, y0 + wobble))
+          fillWaterRect(x0, ySeg, segLen, thickness)
+          x0 += segLen
+          if (x0 >= width) break
+        }
+      } else {
+        const x0 = Math.floor(rng() * (width - thickness))
+        let y0 = Math.floor(rng() * (height - length))
+        const segments = 3 + Math.floor(rng() * 3)
+        const segLen = Math.max(7, Math.floor(length / segments))
+        for (let s = 0; s < segments; s++) {
+          const wobble = Math.floor((rng() - 0.5) * 3)
+          const xSeg = Math.max(0, Math.min(width - thickness, x0 + wobble))
+          fillWaterRect(xSeg, y0, thickness, segLen)
+          y0 += segLen
+          if (y0 >= height) break
+        }
+      }
+    }
+
+    // Sprinkle dirt (1) on non-water tiles
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = y * width + x
+        if (tiles[idx] === 2) continue
+        tiles[idx] = rng() < 0.4 ? 1 : 0
+      }
+    }
+  })()
 
   let nextUnitId = 1
   const units = []
