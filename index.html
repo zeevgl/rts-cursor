@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RTS Starter</title>
+    <style>
+      html, body, #app {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #0d1117;
+        color: #c9d1d9;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+      }
+      #hud {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: rgba(0,0,0,0.4);
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+      }
+      canvas { display: block; }
+      .selection-rect {
+        position: absolute;
+        border: 1px dashed #58a6ff;
+        background: rgba(88,166,255,0.15);
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game"></canvas>
+      <div id="hud">WASD or Middle-drag to pan • Wheel to zoom • Drag to select • Right-click to move</div>
+      <div id="selection" class="selection-rect" style="display:none"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+  </html>
+
+
