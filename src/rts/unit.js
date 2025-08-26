@@ -48,6 +48,24 @@ export class Unit {
     const size = Math.max(16, 24 * camera.zoom)
     const moving = this.tx != null
     const sheet = this.animations ? (moving ? this.animations.walk : this.animations.idle) : this.sprite
+
+    // Selection indication (ring/ellipse beneath unit)
+    if (isSelected) {
+      const rx = Math.max(6, size * 0.55)
+      const ry = Math.max(3, size * 0.22)
+      const cx = Math.floor(p.x) + 0.5
+      const cy = Math.floor(p.y + size * 0.35) + 0.5
+      const lw = Math.max(1, 2 * camera.zoom)
+      ctx.save()
+      ctx.lineWidth = lw
+      ctx.strokeStyle = 'rgba(34,197,94,0.85)'
+      ctx.fillStyle = 'rgba(34,197,94,0.18)'
+      ctx.beginPath()
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      ctx.restore()
+    }
     if (sheet && (sheet.image.complete || sheet.image.naturalWidth > 0)) {
       const fps = moving ? 8 : 4
       this.anim.frame = Math.floor(this.anim.time * fps) % sheet.frameCount
