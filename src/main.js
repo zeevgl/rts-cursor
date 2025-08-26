@@ -93,6 +93,20 @@ const engine = createEngine({
       const size = Math.max(2, 12 * camera.zoom)
       ctx.fillStyle = selection.entities.has(unit.id) ? '#ff6b6b' : '#e11d48'
       ctx.fillRect(Math.floor(x - size/2), Math.floor(y - size/2), Math.ceil(size), Math.ceil(size))
+      // health bar
+      if (unit.maxHp != null && unit.hp != null) {
+        const barW = Math.max(10, 16 * camera.zoom)
+        const barH = Math.max(2, 3 * camera.zoom)
+        const pct = Math.max(0, Math.min(1, unit.hp / unit.maxHp))
+        const bx = Math.floor(x - barW/2)
+        const by = Math.floor(y - size/2 - 6 * camera.zoom)
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'
+        ctx.fillRect(bx, by, Math.ceil(barW), Math.ceil(barH))
+        ctx.fillStyle = '#22c55e'
+        ctx.fillRect(bx, by, Math.ceil(barW * pct), Math.ceil(barH))
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+        ctx.strokeRect(bx + 0.5, by + 0.5, Math.ceil(barW), Math.ceil(barH))
+      }
     }
 
     // Render selection rectangle (CSS div is used during drag)

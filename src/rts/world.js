@@ -77,7 +77,7 @@ export function createWorld({ width, height, tileSize }) {
   let nextUnitId = 1
   const units = []
   for (let i = 0; i < 20; i++) {
-    units.push({ id: nextUnitId++, x: (width * tileSize / 2) + (i - 10) * 24, y: (height * tileSize / 2) + ((i%5) - 2) * 24, tx: null, ty: null, speed: 120, path: null, cd: 0 })
+    units.push({ id: nextUnitId++, x: (width * tileSize / 2) + (i - 10) * 24, y: (height * tileSize / 2) + ((i%5) - 2) * 24, tx: null, ty: null, speed: 120, path: null, cd: 0, hp: 10, maxHp: 10 })
   }
 
   // Enemies and projectiles
@@ -99,7 +99,7 @@ export function createWorld({ width, height, tileSize }) {
   const enemyCount = 34
   for (let i = 0; i < enemyCount; i++) {
     const p = randomWalkableWorldPosition()
-    enemies.push({ id: nextEnemyId++, x: p.x, y: p.y, hp: 3, speed: 90, cd: 0, tx: null, ty: null, path: null, ai: 0 })
+    enemies.push({ id: nextEnemyId++, x: p.x, y: p.y, hp: 3, maxHp: 3, speed: 90, cd: 0, tx: null, ty: null, path: null, ai: 0 })
   }
 
   function tileIndex(tx, ty) { return ty * width + tx }
@@ -419,11 +419,7 @@ export function createWorld({ width, height, tileSize }) {
       }
       if (hitIndex !== -1) {
         const t = targets[hitIndex]
-        if (t.hp === undefined) {
-          // player unit: add hp if we want, for now treat as 1-hit pop
-          // add transient hp
-          t.hp = 1
-        }
+        if (t.hp === undefined) { projectiles.splice(i, 1); continue }
         t.hp -= p.dmg
         if (t.hp <= 0) {
           // remove dead enemy or unit
@@ -464,13 +460,25 @@ export function createWorld({ width, height, tileSize }) {
       }
     }
 
-    // Draw enemies
+    // Draw enemies with health bars
     for (const e of enemies) {
       if (e.hp <= 0) continue
       const { x, y } = camera.worldToScreen(e.x, e.y)
       const size = Math.max(2, 12 * camera.zoom)
       ctx.fillStyle = '#38bdf8' // cyan
       ctx.fillRect(Math.floor(x - size/2), Math.floor(y - size/2), Math.ceil(size), Math.ceil(size))
+      // health bar
+      const barW = Math.max(10, 16 * camera.zoom)
+      const barH = Math.max(2, 3 * camera.zoom)
+      const pct = Math.max(0, Math.min(1, (e.hp || 0) / (e.maxHp || e.hp || 1)))
+      const bx = Math.floor(x - barW/2)
+      const by = Math.floor(y - size/2 - 6 * camera.zoom)
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'
+      ctx.fillRect(bx, by, Math.ceil(barW), Math.ceil(barH))
+      ctx.fillStyle = '#22c55e'
+      ctx.fillRect(bx, by, Math.ceil(barW * pct), Math.ceil(barH))
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+      ctx.strokeRect(bx + 0.5, by + 0.5, Math.ceil(barW), Math.ceil(barH))
     }
 
     // Draw projectiles
