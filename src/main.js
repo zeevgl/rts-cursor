@@ -29,6 +29,25 @@ const input = createInput(canvas, selectionDiv, camera)
 const selection = createSelection()
 const minimap = createMinimap(minimapCanvas, world, camera)
 
+function clampCameraToWorld() {
+  const worldW = world.width * world.tileSize
+  const worldH = world.height * world.tileSize
+  const halfW = (innerWidth / 2) / camera.zoom
+  const halfH = (innerHeight / 2) / camera.zoom
+  if (worldW <= halfW * 2) {
+    camera.x = worldW / 2
+  } else {
+    if (camera.x < halfW) camera.x = halfW
+    if (camera.x > worldW - halfW) camera.x = worldW - halfW
+  }
+  if (worldH <= halfH * 2) {
+    camera.y = worldH / 2
+  } else {
+    if (camera.y < halfH) camera.y = halfH
+    if (camera.y > worldH - halfH) camera.y = worldH - halfH
+  }
+}
+
 // Center camera on player units at start
 if (world.units && world.units.length) {
   let sx = 0, sy = 0
@@ -59,6 +78,8 @@ const engine = createEngine({
       camera.x -= input.pointer.dx / camera.zoom
       camera.y -= input.pointer.dy / camera.zoom
     }
+
+    clampCameraToWorld()
 
     // Selection
     if (input.dragging) {

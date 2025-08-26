@@ -52,8 +52,13 @@ export function createMinimap(canvas, world, camera) {
     const mx = Math.max(0, Math.min(canvas.width, clientX - rect.left))
     const my = Math.max(0, Math.min(canvas.height, clientY - rect.top))
     const w = miniToWorld(mx, my)
-    camera.x = w.x
-    camera.y = w.y
+    // Center camera but clamp to world
+    const halfW = (innerWidth / 2) / camera.zoom
+    const halfH = (innerHeight / 2) / camera.zoom
+    const worldW = world.width * world.tileSize
+    const worldH = world.height * world.tileSize
+    camera.x = Math.max(halfW, Math.min(worldW - halfW, w.x))
+    camera.y = Math.max(halfH, Math.min(worldH - halfH, w.y))
   }
 
   canvas.addEventListener('mousedown', (e) => { mm.dragging = true; handleNavigate(e.clientX, e.clientY) })
