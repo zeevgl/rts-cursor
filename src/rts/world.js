@@ -8,6 +8,7 @@ function rand(seed) {
 }
 
 import { Unit } from './unit.js'
+import { createGeneratedSpriteSheet, createMarineSpriteSheet } from './sprites.js'
 
 export function createWorld({ width, height, tileSize }) {
   const rng = rand(12345)
@@ -79,7 +80,9 @@ export function createWorld({ width, height, tileSize }) {
   let nextUnitId = 1
   const units = []
   for (let i = 0; i < 20; i++) {
-    units.push(new Unit({ id: nextUnitId++, x: (width * tileSize / 2) + (i - 10) * 24, y: (height * tileSize / 2) + ((i%5) - 2) * 24, speed: 120, hp: 10, maxHp: 10 }))
+    const u = new Unit({ id: nextUnitId++, x: (width * tileSize / 2) + (i - 10) * 24, y: (height * tileSize / 2) + ((i%5) - 2) * 24, speed: 120, hp: 10, maxHp: 10 })
+    u.sprite = createMarineSpriteSheet({ base: '#5b94f7' })
+    units.push(u)
   }
 
   // Enemies and projectiles
@@ -102,6 +105,7 @@ export function createWorld({ width, height, tileSize }) {
   for (let i = 0; i < enemyCount; i++) {
     const p = randomWalkableWorldPosition()
     const enemy = new Unit({ id: nextEnemyId++, x: p.x, y: p.y, speed: 90, hp: 3, maxHp: 3, color: '#38bdf8', selectedColor: '#7dd3fc' })
+    enemy.sprite = createMarineSpriteSheet({ base: '#38bdf8' })
     enemy.ai = 0
     enemies.push(enemy)
   }

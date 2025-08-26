@@ -12,9 +12,13 @@ export class Unit {
     this.maxHp = maxHp
     this.color = color
     this.selectedColor = selectedColor
+    this.anim = { time: 0, frame: 0 }
+    this.sprite = null
   }
 
   update(dt, isWalkable) {
+    // advance animation time
+    this.anim.time += dt
     if (this.tx == null && this.path && this.path.length) {
       const next = this.path[0]
       this.tx = next.x; this.ty = next.y
@@ -40,9 +44,23 @@ export class Unit {
 
   render(ctx, camera, isSelected = false) {
     const p = camera.worldToScreen(this.x, this.y)
-    const size = Math.max(2, 12 * camera.zoom)
-    ctx.fillStyle = isSelected ? this.selectedColor : this.color
-    ctx.fillRect(Math.floor(p.x - size/2), Math.floor(p.y - size/2), Math.ceil(size), Math.ceil(size))
+    const size = Math.max(10, 12 * camera.zoom)
+    if (this.sprite && (this.sprite.image.complete || this.sprite.image.naturalWidth > 0)) {
+      // animate at 8 fps when moving, 4 fps idle
+      const moving = this.tx != null
+      const fps = moving ? 8 : 4
+      this.anim.frame = Math.floor(this.anim.time * fps) % this.sprite.frameCount
+      const sx = this.anim.frame * this.sprite.frameWidth
+      const sy = 0
+      const dw = size
+      const dh = size
+      ctx.imageSmoothingEnabled = false
+      ctx.drawImage(this.sprite.image, sx, sy, this.sprite.frameWidth, this.sprite.frameHeight,
+        Math.floor(p.x - dw/2), Math.floor(p.y - dh/2), Math.ceil(dw), Math.ceil(dh))
+    } else {
+      ctx.fillStyle = isSelected ? this.selectedColor : this.color
+      ctx.fillRect(Math.floor(p.x - size/2), Math.floor(p.y - size/2), Math.ceil(size), Math.ceil(size))
+    }
     if (this.maxHp != null && this.hp != null) {
       const barW = Math.max(10, 16 * camera.zoom)
       const barH = Math.max(2, 3 * camera.zoom)
