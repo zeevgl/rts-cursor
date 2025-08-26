@@ -13,7 +13,8 @@ export class Unit {
     this.color = color
     this.selectedColor = selectedColor
     this.anim = { time: 0, frame: 0 }
-    this.sprite = null
+    this.sprite = null // single-sheet fallback
+    this.animations = null // { idle, walk }
   }
 
   update(dt, isWalkable) {
@@ -45,17 +46,17 @@ export class Unit {
   render(ctx, camera, isSelected = false) {
     const p = camera.worldToScreen(this.x, this.y)
     const size = Math.max(16, 24 * camera.zoom)
-    if (this.sprite && (this.sprite.image.complete || this.sprite.image.naturalWidth > 0)) {
-      // animate at 8 fps when moving, 4 fps idle
-      const moving = this.tx != null
+    const moving = this.tx != null
+    const sheet = this.animations ? (moving ? this.animations.walk : this.animations.idle) : this.sprite
+    if (sheet && (sheet.image.complete || sheet.image.naturalWidth > 0)) {
       const fps = moving ? 8 : 4
-      this.anim.frame = Math.floor(this.anim.time * fps) % this.sprite.frameCount
-      const sx = this.anim.frame * this.sprite.frameWidth
+      this.anim.frame = Math.floor(this.anim.time * fps) % sheet.frameCount
+      const sx = this.anim.frame * sheet.frameWidth
       const sy = 0
       const dw = size
       const dh = size
       ctx.imageSmoothingEnabled = false
-      ctx.drawImage(this.sprite.image, sx, sy, this.sprite.frameWidth, this.sprite.frameHeight,
+      ctx.drawImage(sheet.image, sx, sy, sheet.frameWidth, sheet.frameHeight,
         Math.floor(p.x - dw/2), Math.floor(p.y - dh/2), Math.ceil(dw), Math.ceil(dh))
     } else {
       ctx.fillStyle = isSelected ? this.selectedColor : this.color

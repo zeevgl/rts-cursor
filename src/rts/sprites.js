@@ -81,7 +81,10 @@ export function createMarineSpriteSheet({
   base = '#5b94f7', // armor base
   shadow = '#2f4a7a', // darker armor/shadows
   visor = '#9be9ff', // visor glow
-  accent = '#cbd5e1' // light accents/edge
+  accent = '#cbd5e1', // light accents/edge
+  ampLeg = 2,
+  ampBob = 1,
+  ampArm = 1
 } = {}) {
   const w = frameSize * frameCount
   const h = frameSize
@@ -92,9 +95,9 @@ export function createMarineSpriteSheet({
 
   function framePose(i) {
     const t = (i / frameCount) * Math.PI * 2
-    const leg = Math.round(Math.sin(t) * 2) // -2..2
-    const bob = Math.round(Math.sin(t) * 1) // subtle body bob
-    const arm = Math.round(Math.cos(t) * 1)
+    const leg = Math.round(Math.sin(t) * ampLeg) // -amp..amp
+    const bob = Math.round(Math.sin(t) * ampBob) // subtle body bob
+    const arm = Math.round(Math.cos(t) * ampArm)
     return { leg, bob, arm }
   }
 
@@ -161,6 +164,13 @@ export function createMarineSpriteSheet({
   const image = new Image()
   image.src = canvas.toDataURL()
   return { image, frameWidth: frameSize, frameHeight: frameSize, frameCount }
+}
+
+// Convenience: build idle and walk animations with different amplitudes/frame counts
+export function createMarineAnimations(opts = {}) {
+  const walk = createMarineSpriteSheet({ ...opts, frameCount: 6, ampLeg: 2, ampBob: 1, ampArm: 1 })
+  const idle = createMarineSpriteSheet({ ...opts, frameCount: 4, ampLeg: 0.3, ampBob: 0.5, ampArm: 0.2 })
+  return { idle, walk }
 }
 
 
