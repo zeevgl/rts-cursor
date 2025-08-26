@@ -89,6 +89,8 @@ export function createWorld({ width, height, tileSize }) {
   let nextEnemyId = 1
   const enemies = []
   const projectiles = []
+  const bloodParticles = []
+  const bloodSplats = []
 
   function randomWalkableWorldPosition() {
     for (let tries = 0; tries < 1000; tries++) {
@@ -113,6 +115,30 @@ export function createWorld({ width, height, tileSize }) {
   function tileIndex(tx, ty) { return ty * width + tx }
   function worldToTile(wx, wy) { return { tx: Math.floor(wx / tileSize), ty: Math.floor(wy / tileSize) } }
   function tileToWorldCenter(tx, ty) { return { x: tx * tileSize + tileSize / 2, y: ty * tileSize + tileSize / 2 } }
+
+  function spawnBloodBurst(wx, wy, baseColor = '#b91c1c') {
+    // spray particles
+    for (let i = 0; i < 18 + Math.floor(Math.random() * 10); i++) {
+      const ang = Math.random() * Math.PI * 2
+      const spd = 120 + Math.random() * 260
+      bloodParticles.push({
+        x: wx,
+        y: wy,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd - 80,
+        ttl: 0.5 + Math.random() * 0.6,
+        life: 0.6,
+        r: 1 + Math.random() * 2.5,
+        color: baseColor
+      })
+    }
+    // ground splats
+    for (let i = 0; i < 6 + Math.floor(Math.random() * 6); i++) {
+      const ox = (Math.random() - 0.5) * 20
+      const oy = (Math.random() - 0.5) * 20
+      bloodSplats.push({ x: wx + ox, y: wy + oy, r: 6 + Math.random() * 12, a: 0.55 })
+    }
+  }
 
   function isWalkable(wx, wy) {
     const tx = Math.floor(wx / tileSize)
@@ -386,16 +412,38 @@ export function createWorld({ width, height, tileSize }) {
         if (t.hp === undefined) { projectiles.splice(i, 1); continue }
         t.hp -= p.dmg
         if (t.hp <= 0) {
-          // remove dead enemy or unit
-          if (p.owner === 'player') {
-            enemies.splice(hitIndex, 1)
-          } else {
-            // remove from units by identity
-            const idx = units.indexOf(t)
-            if (idx >= 0) units.splice(idx, 1)
+          spawnBloodBurst(t.x, t.y, '#b91c1c')
+          // trigger death animation then remove after duration
+          if (typeof t.die === 'function') {
+            t.die()
           }
+          // schedule removal
+          setTimeout(() => {
+            if (p.owner === 'player') {
+              const idx = enemies.indexOf(t)
+              if (idx >= 0) enemies.splice(idx, 1)
+            } else {
+              const idx = units.indexOf(t)
+              if (idx >= 0) units.splice(idx, 1)
+            }
+          }, 650)
         }
         projectiles.splice(i, 1)
+      }
+    }
+
+    // update blood particles
+    for (let i = bloodParticles.length - 1; i >= 0; i--) {
+      const b = bloodParticles[i]
+      b.ttl -= dt
+      // physics
+      b.vx *= 0.9
+      b.vy += 900 * dt
+      b.x += b.vx * dt
+      b.y += b.vy * dt
+      if (b.ttl <= 0) {
+        bloodSplats.push({ x: b.x, y: b.y, r: b.r + Math.random() * 3, a: 0.6 })
+        bloodParticles.splice(i, 1)
       }
     }
   }
@@ -424,6 +472,16 @@ export function createWorld({ width, height, tileSize }) {
       }
     }
 
+    // Draw blood splats (under units)
+    for (const s of bloodSplats) {
+      const p = camera.worldToScreen(s.x, s.y)
+      const r = Math.max(1, s.r * camera.zoom)
+      ctx.fillStyle = `rgba(185,28,28,${s.a})`
+      ctx.beginPath()
+      ctx.arc(Math.floor(p.x)+0.5, Math.floor(p.y)+0.5, r, 0, Math.PI * 2)
+      ctx.fill()
+    }
+
     // Draw units
     for (const u of units) {
       const isSelected = selectedSet ? selectedSet.has(u.id) : false
@@ -434,6 +492,17 @@ export function createWorld({ width, height, tileSize }) {
     for (const e of enemies) {
       if (e.hp <= 0) continue
       e.render(ctx, camera, false)
+    }
+
+    // Draw blood particles (over units a bit)
+    for (const b of bloodParticles) {
+      const p = camera.worldToScreen(b.x, b.y)
+      const r = Math.max(1, b.r * camera.zoom)
+      const alpha = Math.max(0.1, Math.min(0.9, b.ttl / b.life))
+      ctx.fillStyle = `rgba(239,68,68,${alpha})`
+      ctx.beginPath()
+      ctx.arc(Math.floor(p.x)+0.5, Math.floor(p.y)+0.5, r, 0, Math.PI*2)
+      ctx.fill()
     }
 
     // Draw projectiles

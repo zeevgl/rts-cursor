@@ -15,11 +15,20 @@ export class Unit {
     this.anim = { time: 0, frame: 0 }
     this.sprite = null // single-sheet fallback
     this.animations = null // { idle, walk }
+    this.isDying = false
+    this.deathElapsed = 0
+    this.deathDuration = 0.6
   }
 
   update(dt, isWalkable) {
     // advance animation time
     this.anim.time += dt
+    if (this.isDying) {
+      this.deathElapsed += dt
+      this.tx = null
+      this.ty = null
+      return
+    }
     if (this.tx == null && this.path && this.path.length) {
       const next = this.path[0]
       this.tx = next.x; this.ty = next.y
@@ -50,7 +59,7 @@ export class Unit {
     const sheet = this.animations ? (moving ? this.animations.walk : this.animations.idle) : this.sprite
 
     // Selection indication (ring/ellipse beneath unit)
-    if (isSelected) {
+    if (isSelected && !this.isDying) {
       const rx = Math.max(6, size * 0.55)
       const ry = Math.max(3, size * 0.22)
       const cx = Math.floor(p.x) + 0.5
@@ -71,11 +80,21 @@ export class Unit {
       this.anim.frame = Math.floor(this.anim.time * fps) % sheet.frameCount
       const sx = this.anim.frame * sheet.frameWidth
       const sy = 0
-      const dw = size
-      const dh = size
+      let dw = size
+      let dh = size
+      let alpha = 1
+      if (this.isDying) {
+        const t = Math.min(1, this.deathElapsed / this.deathDuration)
+        alpha = 1 - t
+        dw = size * (1 + 0.6 * t)
+        dh = dw
+      }
       ctx.imageSmoothingEnabled = false
+      const oldAlpha = ctx.globalAlpha
+      ctx.globalAlpha = oldAlpha * alpha
       ctx.drawImage(sheet.image, sx, sy, sheet.frameWidth, sheet.frameHeight,
         Math.floor(p.x - dw/2), Math.floor(p.y - dh/2), Math.ceil(dw), Math.ceil(dh))
+      ctx.globalAlpha = oldAlpha
     } else {
       ctx.fillStyle = isSelected ? this.selectedColor : this.color
       ctx.fillRect(Math.floor(p.x - size/2), Math.floor(p.y - size/2), Math.ceil(size), Math.ceil(size))
@@ -93,6 +112,12 @@ export class Unit {
       ctx.strokeStyle = 'rgba(255,255,255,0.25)'
       ctx.strokeRect(bx + 0.5, by + 0.5, Math.ceil(barW), Math.ceil(barH))
     }
+  }
+
+  die() {
+    if (this.isDying) return
+    this.isDying = true
+    this.deathElapsed = 0
   }
 }
 
