@@ -1,5 +1,5 @@
 export class Unit {
-  constructor({ id, x, y, speed = 120, hp = 10, maxHp = 10 }) {
+  constructor({ id, x, y, speed = 120, hp = 10, maxHp = 10, color = '#e11d48', selectedColor = '#ff6b6b' }) {
     this.id = id
     this.x = x
     this.y = y
@@ -10,6 +10,8 @@ export class Unit {
     this.cd = 0
     this.hp = hp
     this.maxHp = maxHp
+    this.color = color
+    this.selectedColor = selectedColor
   }
 
   update(dt, isWalkable) {
@@ -39,7 +41,7 @@ export class Unit {
   render(ctx, camera, isSelected = false) {
     const p = camera.worldToScreen(this.x, this.y)
     const size = Math.max(2, 12 * camera.zoom)
-    ctx.fillStyle = isSelected ? '#ff6b6b' : '#e11d48'
+    ctx.fillStyle = isSelected ? this.selectedColor : this.color
     ctx.fillRect(Math.floor(p.x - size/2), Math.floor(p.y - size/2), Math.ceil(size), Math.ceil(size))
     if (this.maxHp != null && this.hp != null) {
       const barW = Math.max(10, 16 * camera.zoom)

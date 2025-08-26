@@ -101,7 +101,9 @@ export function createWorld({ width, height, tileSize }) {
   const enemyCount = 34
   for (let i = 0; i < enemyCount; i++) {
     const p = randomWalkableWorldPosition()
-    enemies.push({ id: nextEnemyId++, x: p.x, y: p.y, hp: 3, maxHp: 3, speed: 90, cd: 0, tx: null, ty: null, path: null, ai: 0 })
+    const enemy = new Unit({ id: nextEnemyId++, x: p.x, y: p.y, speed: 90, hp: 3, maxHp: 3, color: '#38bdf8', selectedColor: '#7dd3fc' })
+    enemy.ai = 0
+    enemies.push(enemy)
   }
 
   function tileIndex(tx, ty) { return ty * width + tx }
@@ -314,7 +316,7 @@ export function createWorld({ width, height, tileSize }) {
       }
     }
 
-    // enemies fire back (stationary)
+    // enemies fire back
     for (const e of enemies) {
       if (e.hp <= 0) continue
       e.cd = Math.max(0, (e.cd || 0) - dt)
@@ -445,25 +447,10 @@ export function createWorld({ width, height, tileSize }) {
       u.render(ctx, camera, isSelected)
     }
 
-    // Draw enemies with health bars
+    // Draw enemies (as units)
     for (const e of enemies) {
       if (e.hp <= 0) continue
-      const { x, y } = camera.worldToScreen(e.x, e.y)
-      const size = Math.max(2, 12 * camera.zoom)
-      ctx.fillStyle = '#38bdf8' // cyan
-      ctx.fillRect(Math.floor(x - size/2), Math.floor(y - size/2), Math.ceil(size), Math.ceil(size))
-      // health bar
-      const barW = Math.max(10, 16 * camera.zoom)
-      const barH = Math.max(2, 3 * camera.zoom)
-      const pct = Math.max(0, Math.min(1, (e.hp || 0) / (e.maxHp || e.hp || 1)))
-      const bx = Math.floor(x - barW/2)
-      const by = Math.floor(y - size/2 - 6 * camera.zoom)
-      ctx.fillStyle = 'rgba(0,0,0,0.5)'
-      ctx.fillRect(bx, by, Math.ceil(barW), Math.ceil(barH))
-      ctx.fillStyle = '#22c55e'
-      ctx.fillRect(bx, by, Math.ceil(barW * pct), Math.ceil(barH))
-      ctx.strokeStyle = 'rgba(255,255,255,0.25)'
-      ctx.strokeRect(bx + 0.5, by + 0.5, Math.ceil(barW), Math.ceil(barH))
+      e.render(ctx, camera, false)
     }
 
     // Draw projectiles
