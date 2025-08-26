@@ -134,7 +134,7 @@ export function createWorld({ width, height, tileSize }) {
     return null
   }
 
-  // A* on 4-neighborhood grid
+  // A* on 8-neighborhood grid with corner checks and octile heuristic
   function findPath(startTx, startTy, goalTx, goalTy) {
     if (!isWalkableTile(goalTx, goalTy)) {
       const near = findNearestWalkable(goalTx, goalTy, 8)
@@ -159,7 +159,14 @@ export function createWorld({ width, height, tileSize }) {
     const startIdx = tileIndex(startTx, startTy)
     const goalIdx = tileIndex(goalTx, goalTy)
     gScore[startIdx] = 0
-    fScore[startIdx] = Math.abs(goalTx - startTx) + Math.abs(goalTy - startTy)
+    function heuristic(ax, ay, bx, by) {
+      const dx = Math.abs(bx - ax)
+      const dy = Math.abs(by - ay)
+      const D = 1
+      const D2 = Math.SQRT2
+      return D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy)
+    }
+    fScore[startIdx] = heuristic(startTx, startTy, goalTx, goalTy)
     open.push(startIdx)
     inOpen[startIdx] = 1
 
@@ -177,7 +184,16 @@ export function createWorld({ width, height, tileSize }) {
       return idx
     }
 
-    const neighbors = [[1,0],[ -1,0],[0,1],[0,-1]]
+    const neighbors = [
+      { dx: 1, dy: 0, cost: 1 },
+      { dx: -1, dy: 0, cost: 1 },
+      { dx: 0, dy: 1, cost: 1 },
+      { dx: 0, dy: -1, cost: 1 },
+      { dx: 1, dy: 1, cost: Math.SQRT2 },
+      { dx: 1, dy: -1, cost: Math.SQRT2 },
+      { dx: -1, dy: 1, cost: Math.SQRT2 },
+      { dx: -1, dy: -1, cost: Math.SQRT2 }
+    ]
 
     while (open.length) {
       const current = popBest()
@@ -199,16 +215,22 @@ export function createWorld({ width, height, tileSize }) {
       const cy = Math.floor(current / width)
       const cx = current - cy * width
       for (let k = 0; k < neighbors.length; k++) {
-        const nx = cx + neighbors[k][0]
-        const ny = cy + neighbors[k][1]
+        const nx = cx + neighbors[k].dx
+        const ny = cy + neighbors[k].dy
         if (!isWalkableTile(nx, ny)) continue
+        // prevent corner cutting: for diagonal moves require both adjacent orthogonal tiles to be walkable
+        if (neighbors[k].dx !== 0 && neighbors[k].dy !== 0) {
+          if (!isWalkableTile(cx + neighbors[k].dx, cy) || !isWalkableTile(cx, cy + neighbors[k].dy)) {
+            continue
+          }
+        }
         const nIdx = tileIndex(nx, ny)
         if (closed[nIdx]) continue
-        const tentativeG = gScore[current] + 1
+        const tentativeG = gScore[current] + neighbors[k].cost
         if (!inOpen[nIdx] || tentativeG < gScore[nIdx]) {
           cameFrom[nIdx] = current
           gScore[nIdx] = tentativeG
-          fScore[nIdx] = tentativeG + Math.abs(goalTx - nx) + Math.abs(goalTy - ny)
+          fScore[nIdx] = tentativeG + heuristic(nx, ny, goalTx, goalTy)
           if (!inOpen[nIdx]) pushOpen(nIdx)
         }
       }
