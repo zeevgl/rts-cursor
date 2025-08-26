@@ -415,7 +415,7 @@ export function createWorld({ width, height, tileSize }) {
     }
   }
 
-  function render(ctx, camera) {
+  function render(ctx, camera, selectedSet) {
     // draw visible tiles only
     const { x: wx0, y: wy0 } = camera.screenToWorld(0, 0)
     const { x: wx1, y: wy1 } = camera.screenToWorld(innerWidth, innerHeight)
@@ -437,6 +437,12 @@ export function createWorld({ width, height, tileSize }) {
         ctx.strokeStyle = 'rgba(255,255,255,0.05)'
         ctx.strokeRect(Math.floor(s.x) + 0.5, Math.floor(s.y) + 0.5, Math.ceil(size), Math.ceil(size))
       }
+    }
+
+    // Draw units
+    for (const u of units) {
+      const isSelected = selectedSet ? selectedSet.has(u.id) : false
+      u.render(ctx, camera, isSelected)
     }
 
     // Draw enemies with health bars

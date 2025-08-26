@@ -84,13 +84,8 @@ const engine = createEngine({
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // Render grid and terrain
-    world.render(ctx, camera)
-
-    // Render units via class
-    for (const unit of world.units) {
-      unit.render(ctx, camera, selection.entities.has(unit.id))
-    }
+    // Render world (terrain, units, enemies, projectiles)
+    world.render(ctx, camera, selection.entities)
 
     // Render selection rectangle (CSS div is used during drag)
   }
