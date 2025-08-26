@@ -7,6 +7,8 @@ function rand(seed) {
   }
 }
 
+import { Unit } from './unit.js'
+
 export function createWorld({ width, height, tileSize }) {
   const rng = rand(12345)
   const tiles = new Uint8Array(width * height)
@@ -77,7 +79,7 @@ export function createWorld({ width, height, tileSize }) {
   let nextUnitId = 1
   const units = []
   for (let i = 0; i < 20; i++) {
-    units.push({ id: nextUnitId++, x: (width * tileSize / 2) + (i - 10) * 24, y: (height * tileSize / 2) + ((i%5) - 2) * 24, tx: null, ty: null, speed: 120, path: null, cd: 0, hp: 10, maxHp: 10 })
+    units.push(new Unit({ id: nextUnitId++, x: (width * tileSize / 2) + (i - 10) * 24, y: (height * tileSize / 2) + ((i%5) - 2) * 24, speed: 120, hp: 10, maxHp: 10 }))
   }
 
   // Enemies and projectiles
@@ -274,30 +276,7 @@ export function createWorld({ width, height, tileSize }) {
   }
 
   function update(dt) {
-    for (const u of units) {
-      if (u.tx == null && u.path && u.path.length) {
-        const next = u.path[0]
-        u.tx = next.x; u.ty = next.y
-      }
-      if (u.tx == null) continue
-      const dx = u.tx - u.x
-      const dy = u.ty - u.y
-      const dist = Math.hypot(dx, dy)
-      if (dist < 2) {
-        // reached waypoint
-        if (u.path && u.path.length) {
-          u.path.shift()
-          if (u.path.length) { u.tx = u.path[0].x; u.ty = u.path[0].y } else { u.tx = u.ty = null; u.path = null }
-        } else {
-          u.tx = u.ty = null
-        }
-        continue
-      }
-      const step = u.speed * dt
-      const nx = u.x + (dx / dist) * step
-      const ny = u.y + (dy / dist) * step
-      if (isWalkable(nx, ny)) { u.x = nx; u.y = ny } else { u.tx = u.ty = null; u.path = null }
-    }
+    for (const u of units) { u.update(dt, isWalkable) }
 
     // Combat: units shoot at enemies
     const unitRange = 220
