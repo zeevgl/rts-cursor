@@ -357,29 +357,8 @@ export function createWorld({ width, height, tileSize }) {
         e.ai = 0.5 + (rng() * 0.7)
       }
 
-      // Follow path waypoints
-      if (e.tx == null && e.path && e.path.length) {
-        const next = e.path[0]
-        e.tx = next.x; e.ty = next.y
-      }
-      if (e.tx != null) {
-        const dx = e.tx - e.x
-        const dy = e.ty - e.y
-        const dist = Math.hypot(dx, dy)
-        if (dist < 2) {
-          if (e.path && e.path.length) {
-            e.path.shift()
-            if (e.path.length) { e.tx = e.path[0].x; e.ty = e.path[0].y } else { e.tx = e.ty = null; e.path = null }
-          } else {
-            e.tx = e.ty = null
-          }
-        } else {
-          const step = e.speed * dt
-          const nx = e.x + (dx / dist) * step
-          const ny = e.y + (dy / dist) * step
-          if (isWalkable(nx, ny)) { e.x = nx; e.y = ny } else { e.tx = e.ty = null; e.path = null }
-        }
-      }
+      // Movement and animation progression via Unit.update
+      e.update(dt, isWalkable)
     }
 
     // advance projectiles and handle hits
