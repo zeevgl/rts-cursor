@@ -86,8 +86,6 @@ const engine = createEngine({
 
     // Render world (terrain, units, enemies, projectiles)
     world.render(ctx, camera, selection.entities)
-
-    // Render selection rectangle (CSS div is used during drag)
   }
 })
 
