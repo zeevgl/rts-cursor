@@ -3,9 +3,11 @@ import { createWorld } from './rts/world.js'
 import { createInput } from './rts/input.js'
 import { createCamera } from './rts/camera.js'
 import { createSelection } from './rts/selection.js'
+import { createMinimap } from './rts/minimap.js'
 
 const canvas = document.getElementById('game')
 const selectionDiv = document.getElementById('selection')
+const minimapCanvas = document.getElementById('minimap')
 
 const DPR = Math.min(2, window.devicePixelRatio || 1)
 
@@ -25,6 +27,7 @@ const camera = createCamera({ dpr: DPR, zoom: 0.5 })
 const world = createWorld({ width: 128, height: 128, tileSize: 32 })
 const input = createInput(canvas, selectionDiv, camera)
 const selection = createSelection()
+const minimap = createMinimap(minimapCanvas, world, camera)
 
 // Center camera on player units at start
 if (world.units && world.units.length) {
@@ -94,6 +97,7 @@ const engine = createEngine({
 
     // Render world (terrain, units, enemies, projectiles)
     world.render(ctx, camera, selection.entities)
+    minimap.draw()
   }
 })
 
