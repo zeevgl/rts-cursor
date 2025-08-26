@@ -44,7 +44,7 @@ export class Unit {
 
   render(ctx, camera, isSelected = false) {
     const p = camera.worldToScreen(this.x, this.y)
-    const size = Math.max(10, 12 * camera.zoom)
+    const size = Math.max(16, 24 * camera.zoom)
     if (this.sprite && (this.sprite.image.complete || this.sprite.image.naturalWidth > 0)) {
       // animate at 8 fps when moving, 4 fps idle
       const moving = this.tx != null

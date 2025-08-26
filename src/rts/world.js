@@ -104,8 +104,8 @@ export function createWorld({ width, height, tileSize }) {
   const enemyCount = 34
   for (let i = 0; i < enemyCount; i++) {
     const p = randomWalkableWorldPosition()
-    const enemy = new Unit({ id: nextEnemyId++, x: p.x, y: p.y, speed: 90, hp: 3, maxHp: 3, color: '#38bdf8', selectedColor: '#7dd3fc' })
-    enemy.sprite = createMarineSpriteSheet({ base: '#38bdf8' })
+    const enemy = new Unit({ id: nextEnemyId++, x: p.x, y: p.y, speed: 90, hp: 3, maxHp: 3, color: '#e11d48', selectedColor: '#ff6b6b' })
+    enemy.sprite = createMarineSpriteSheet({ base: '#e11d48' })
     enemy.ai = 0
     enemies.push(enemy)
   }
