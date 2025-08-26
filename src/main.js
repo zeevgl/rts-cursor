@@ -21,10 +21,18 @@ window.addEventListener('resize', resizeCanvas)
 const ctx = canvas.getContext('2d')
 ctx.imageSmoothingEnabled = false
 
-const camera = createCamera({ dpr: DPR })
+const camera = createCamera({ dpr: DPR, zoom: 0.5 })
 const world = createWorld({ width: 128, height: 128, tileSize: 32 })
 const input = createInput(canvas, selectionDiv, camera)
 const selection = createSelection()
+
+// Center camera on player units at start
+if (world.units && world.units.length) {
+  let sx = 0, sy = 0
+  for (const u of world.units) { sx += u.x; sy += u.y }
+  camera.x = sx / world.units.length
+  camera.y = sy / world.units.length
+}
 
 const engine = createEngine({
   update(dt) {
