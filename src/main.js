@@ -48,6 +48,12 @@ function clampCameraToWorld() {
   }
 }
 
+function pointerOverMinimap(px, py) {
+  if (!minimapCanvas) return false
+  const r = minimapCanvas.getBoundingClientRect()
+  return px >= r.left && px <= r.right && py >= r.top && py <= r.bottom
+}
+
 // Center camera on player units at start
 if (world.units && world.units.length) {
   let sx = 0, sy = 0
@@ -77,6 +83,21 @@ const engine = createEngine({
     if (input.middleDown) {
       camera.x -= input.pointer.dx / camera.zoom
       camera.y -= input.pointer.dy / camera.zoom
+    }
+
+    // Edge scroll (avoid when interacting with minimap)
+    if (!pointerOverMinimap(input.pointer.x, input.pointer.y)) {
+      const edge = 24
+      let ex = 0, ey = 0
+      if (input.pointer.x <= edge) ex = - (1 - (input.pointer.x / Math.max(1, edge)))
+      else if (input.pointer.x >= innerWidth - edge) ex = (1 - ((innerWidth - input.pointer.x) / Math.max(1, edge)))
+      if (input.pointer.y <= edge) ey = - (1 - (input.pointer.y / Math.max(1, edge)))
+      else if (input.pointer.y >= innerHeight - edge) ey = (1 - ((innerHeight - input.pointer.y) / Math.max(1, edge)))
+      if (ex !== 0 || ey !== 0) {
+        const edgeSpeed = panSpeed * 0.8 * dt / camera.zoom
+        camera.x += ex * edgeSpeed
+        camera.y += ey * edgeSpeed
+      }
     }
 
     clampCameraToWorld()
